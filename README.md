@@ -16,8 +16,15 @@ Data is saved in `data/catalog.csv` with the following columns
 - Rating
 - Link
 
-## How to Run
+## Usage 
 ```bash
 pip install -r requirements.txt
-python scraper.py
+python scraper.py [OPTIONS]
 ```
+
+#### Options:
+| Argument | Description | Example |
+|---|---|---|
+| `-o` `--output-file` | Output CSV filename (default: `catalogue`) | `-o books` |
+| `-mp` `--max-pages` | Max number of pages to scrape | `-mp 10` |
+| `-rf` `--rating-filter` | Ratings that should be included | `-rf "1 4 5"` | 

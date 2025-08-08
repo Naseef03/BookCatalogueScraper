@@ -1,11 +1,26 @@
-from random import betavariate
 from bs4 import BeautifulSoup
 import pandas as pd
+import argparse
 
 from utils.fetch import get_html
 
 BASE_URL = "http://books.toscrape.com"
-NUM_PAGES = 10
+
+
+# Argument Config
+parser = argparse.ArgumentParser(description=f"Scrapes book catalogue data from {BASE_URL}")
+parser.add_argument("--rating-filter", "-rf", 
+                    type=str, 
+                    default="1 2 3 4 5", 
+                    help="Specify the ratings (1-5) that needs to be scraped. It should be like \"1 3 5\"")
+parser.add_argument("--output-file", "-o",
+                    type=str,
+                    default="catalogue",
+                    help="Specify the output file name")
+parser.add_argument("--max-pages", "-mp",
+                    type=int,
+                    default=50,
+                    help="Specify the number of pages to be scraped on the website")
 
 
 def word_to_num(word):
@@ -33,7 +48,7 @@ def extract_catalog(book):
     return catalog
     
 
-def extract_catalogs(html):
+def extract_catalogs(html, rating_filter):
     soup = BeautifulSoup(html, "html.parser")
 
     catalogs = []
@@ -41,12 +56,13 @@ def extract_catalogs(html):
 
     for book in books:
         catalog = extract_catalog(book)
-        catalogs.append(catalog)
+        if catalog["Rating"] in rating_filter:
+            catalogs.append(catalog)
     
     return catalogs
     
 
-def extract_all_catalogs(max_pages=500):
+def extract_all_catalogs(rating_filter, max_pages):
     catalogs = []
 
     page_url = "page-1.html"
@@ -54,7 +70,7 @@ def extract_all_catalogs(max_pages=500):
     page_no = 1
     while page_url and page_no <= max_pages:
         html = get_html(f"{BASE_URL}/catalogue/{page_url}")
-        catalogs.extend(extract_catalogs(html))
+        catalogs.extend(extract_catalogs(html, rating_filter=rating_filter))
 
         print(f"Scraped {BASE_URL}/catalogue/{page_url}")
         
@@ -72,6 +88,13 @@ def save(dataset, filepath):
  
 
 if __name__ == "__main__":
-    catalogs = extract_all_catalogs(NUM_PAGES)
-    save(catalogs, "data/catalogs.csv")
+    # Get Arguments
+    args = parser.parse_args()
+
+    rating_filter = list(map(int, args.rating_filter.split()))
+    output_filename = args.output_file
+    max_pages = args.max_pages
+
+    catalogs = extract_all_catalogs(max_pages=max_pages, rating_filter=rating_filter)
+    save(catalogs, f"data/{output_filename}.csv")
 
