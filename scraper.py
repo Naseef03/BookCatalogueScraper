@@ -1,8 +1,7 @@
 from bs4 import BeautifulSoup
-import pandas as pd
 import argparse
 
-from utils.fetch import get_html
+from utils import get_html, save_csv, download_image, word_to_num
 
 BASE_URL = "http://books.toscrape.com"
 
@@ -21,21 +20,20 @@ parser.add_argument("--max-pages", "-mp",
                     type=int,
                     default=50,
                     help="Specify the number of pages to be scraped on the website")
+parser.add_argument("--image", "-i",
+                    action="store_true",
+                    help="Enable downloading of book images and storing it")
 
 
-def word_to_num(word):
-    try:
-        return ["One", "Two", "Three", "Four", "Five"].index(word) + 1
-    except:
-        return 0
-
-
-def extract_catalog(book):
+def extract_catalog(book, image=False):
     title = book.select_one("h3>a")["title"]
     link = f"{BASE_URL}/{book.select_one("h3>a")["href"]}"
     price = book.select_one(".product_price>p").text.strip("Â£")
     avialability = book.select_one(".availability").text.strip()
     rating = word_to_num(book.select_one(".star-rating")["class"][1])
+
+    if image:
+        download_image(f"{BASE_URL}/{book.find("img")["src"]}", filename=title)
 
     catalog = {
         "Title": title,
@@ -48,21 +46,21 @@ def extract_catalog(book):
     return catalog
     
 
-def extract_catalogs(html, rating_filter):
+def extract_catalogs(html, rating_filter, image=False):
     soup = BeautifulSoup(html, "html.parser")
 
     catalogs = []
     books = soup.find_all("article", class_="product_pod")
 
     for book in books:
-        catalog = extract_catalog(book)
+        catalog = extract_catalog(book, image=image)
         if catalog["Rating"] in rating_filter:
             catalogs.append(catalog)
     
     return catalogs
     
 
-def extract_all_catalogs(rating_filter, max_pages):
+def extract_all_catalogs(rating_filter, max_pages, image=False):
     catalogs = []
 
     page_url = "page-1.html"
@@ -70,7 +68,7 @@ def extract_all_catalogs(rating_filter, max_pages):
     page_no = 1
     while page_url and page_no <= max_pages:
         html = get_html(f"{BASE_URL}/catalogue/{page_url}")
-        catalogs.extend(extract_catalogs(html, rating_filter=rating_filter))
+        catalogs.extend(extract_catalogs(html, rating_filter=rating_filter, image=image))
 
         print(f"Scraped {BASE_URL}/catalogue/{page_url}")
         
@@ -81,12 +79,6 @@ def extract_all_catalogs(rating_filter, max_pages):
     return catalogs
 
 
-def save(dataset, filepath):
-    df = pd.DataFrame(dataset)    
-
-    df.to_csv(filepath, index=False)
- 
-
 if __name__ == "__main__":
     # Get Arguments
     args = parser.parse_args()
@@ -94,7 +86,8 @@ if __name__ == "__main__":
     rating_filter = list(map(int, args.rating_filter.split()))
     output_filename = args.output_file
     max_pages = args.max_pages
+    image = args.image
 
-    catalogs = extract_all_catalogs(max_pages=max_pages, rating_filter=rating_filter)
-    save(catalogs, f"data/{output_filename}.csv")
+    catalogs = extract_all_catalogs(max_pages=max_pages, rating_filter=rating_filter, image=image)
+    save_csv(catalogs, f"data/{output_filename}.csv")
 

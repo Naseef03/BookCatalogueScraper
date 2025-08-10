@@ -27,4 +27,5 @@ python scraper.py [OPTIONS]
 |---|---|---|
 | `-o` `--output-file` | Output CSV filename (default: `catalogue`) | `-o books` |
 | `-mp` `--max-pages` | Max number of pages to scrape | `-mp 10` |
-| `-rf` `--rating-filter` | Ratings that should be included | `-rf "1 4 5"` | 
+| `-rf` `--rating-filter` | Ratings that should be included | `-rf "1 4 5"` |
+| `-i` `--image` | Download images of book | `-i` | 
